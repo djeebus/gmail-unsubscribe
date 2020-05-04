@@ -16,14 +16,12 @@ unsubscribed_label = 'Unsubscribed'
 subscribed_label = 'Subscription'
 inbox_label = 'INBOX'
 
+SCOPES = 'https://www.googleapis.com/auth/gmail.modify'
+
 
 @click.command()
 @click.option('--count', default=10, help='Check this many messages for links')
 def cli(count):
-    # Track Senders
-    seen = set()
-    # Set label
-    label = 'Unsubscribed'
     # Get Service
     gmail = get_gmail_service()
 
@@ -95,7 +93,7 @@ def unsubscribe(gmail, message):
         if success:
             return True
 
-    success = _unsubscribe_via_html_link(gmail, message)
+    success = _unsubscribe_via_html_link(message)
     if success:
         return True
 
@@ -123,7 +121,7 @@ def _find_unsubscribe_links(soup):
             yield link.attrs['href']
 
 
-def _unsubscribe_via_html_link(gmail, message):
+def _unsubscribe_via_html_link(message):
     for part in _find_parts(message):
         if part['mimeType'] != 'text/html':
             continue
@@ -185,7 +183,7 @@ def _send_unsubscribe_email(gmail, mail_to_url):
 
     msg_svc = gmail.users().messages()
     request = msg_svc.send(userId='me', body={'raw': message.decode('utf-8')})
-    response = request.execute()
+    request.execute()
     return True
 
 
@@ -322,7 +320,6 @@ def get_or_create_label_id(service, label_name):
 
 
 def get_gmail_service():
-    SCOPES = 'https://www.googleapis.com/auth/gmail.modify'
     store = file.Storage('credentials.json')
     creds = store.get()
     if not creds or creds.invalid:
