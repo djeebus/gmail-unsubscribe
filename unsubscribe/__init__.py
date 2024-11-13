@@ -9,6 +9,7 @@ import click
 import itertools
 import operator
 import re
+import requests
 import urllib.parse
 import webbrowser
 
@@ -88,8 +89,9 @@ def cli(count):
 
 def unsubscribe(gmail, message):
     value = get_header_value(message, 'List-Unsubscribe')
+    is_post = bool(get_header_value(message, 'List-Unsubscribe-Post'))
     if value:
-        success = _unsubscribe_via_list_unsubscribe_header(gmail, value)
+        success = _unsubscribe_via_list_unsubscribe_header(gmail, value, is_post)
         if success:
             return True
 
@@ -136,7 +138,7 @@ def _unsubscribe_via_html_link(message):
         return False
 
 
-def _unsubscribe_via_list_unsubscribe_header(gmail, value):
+def _unsubscribe_via_list_unsubscribe_header(gmail, value, is_post):
     links = _parse_unsubscribe_header(value)
 
     for link in links:
@@ -148,13 +150,29 @@ def _unsubscribe_via_list_unsubscribe_header(gmail, value):
                 return True
 
             print(f'\tfailed to send unsubscribe email')
+            return False
 
         if url.scheme in ('http', 'https'):
-            success = _wait_for_unsubscribe_link(url.geturl())
+            try:
+                _unsubscribe_headless(link, is_post)
+                return True
+            except Exception as e:
+                print('\tfailed to unsubscribe headless')
+                print(e)
+
+            success = _wait_for_unsubscribe_link(link)
             if success:
                 return True
 
-        raise NotImplementedError(url.scheme)
+            print(f'\tfailed to make unsubscribe link')
+            return False
+
+        raise NotImplementedError(url)
+
+
+def _unsubscribe_headless(url: str, is_post: bool):
+    with requests.request('POST' if is_post else 'GET', url) as r:
+        r.raise_for_status()
 
 
 def _wait_for_unsubscribe_link(href):
