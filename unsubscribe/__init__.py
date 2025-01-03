@@ -309,7 +309,7 @@ def _get_messages(service, q=None, max_results=None):
             return
 
         response = request.execute()
-        yield from map(get_id, response['messages'])
+        yield from map(get_id, response.get('messages', list()))
 
 
 def get_recent_message_ids(service, count):

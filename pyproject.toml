@@ -3,7 +3,6 @@ name = "gmail-unsubscribe"
 version = "0.1.0"
 description = ""
 authors = ["Joe Lombrozo <joe@djeebus.net>"]
-readme = "README.md"
 packages = [{include = "unsubscribe"}]
 
 [tool.poetry.dependencies]
